@@ -1,4 +1,4 @@
-import {v2 as cloudinary} from cloudinary;
+import {v2 as cloudinary} from 'cloudinary';
 
 //nodejs file system module help is read and write files
 import fs from 'fs';
@@ -19,6 +19,7 @@ const uploadOnCloudinary = async (filePath) => {
         console.log('File uploaded to Cloudinary successfully:', result.secure_url);
         return result.secure_url;
     } catch (error) {
+        fs.unlinkSync(filePath);
         console.error('Error uploading file to Cloudinary:', error);
         throw error;
     }  
