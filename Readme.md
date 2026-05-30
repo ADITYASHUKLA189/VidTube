@@ -1,4 +1,4 @@
-# Chai aur Backend Series
+# youtube using mern stack
 
 This repository contains the code for the backend series YouTube project.
 
