@@ -4,6 +4,19 @@ import { User } from "../models/user.models.js";
 import uploadOnCloudinary from '../utils/cloudinary.js';
 import ApiResponse from '../utils/apiResponse.js';
 
+const generateAccessAndRefreshToken =async(userId)=>{
+      try{
+        const user=await User.findById(userId);
+        const accessToken = await user.generateAccessToken();
+        const refreshToken = await user.generateRefreshToken();
+        user.refreshToken = refreshToken;
+        await user.save({validateBeforeSave: false});
+        return { accessToken, refreshToken };
+      }catch(error){
+          throw new ApiError(500, "Failed to generate access and refresh token");
+      }
+}
+
 const registerUser = asyncHandler(async (req, res) => {
        //1->get user detials from frontend(abhi ke liye postman se bhejenge)    
        //2->validate the user detials
@@ -84,4 +97,82 @@ const registerUser = asyncHandler(async (req, res) => {
              
 });   
 
-export { registerUser };
+
+
+//creating login user controller here
+
+const loginUser = asyncHandler(async (req, res) => {
+    //things to do in login controller
+    //1->get user detials from frontend(abhi ke liye postman se bhejenge)
+    //2->validate the user detials
+    //3->check for user existence in database:username email
+    //4->compare password with hashed password in db
+    //5->generate refresh token and access token
+    //6->save refresh token in database
+    //7->send cookies response to frontend(without password and refresh token)
+    const {email,username,password} = req.body;
+    if(!email || !username)
+       {
+           throw new ApiError(400, "username or email is required");
+       }   
+    if( email && !email.includes("@")) {
+        throw new ApiError(400, "Please enter a valid email");
+    }
+    if(password.length < 6){
+        throw new ApiError(400, "Password must be at least 6 characters long");
+    }
+    const user=await User.findOne({
+         $or:[{email},{username}]
+    });
+    if(!user){
+        throw new ApiError(404, "User does not exist");
+    }
+    const isPasswordMatch = await user.isPasswordCorrect(password);
+    if(!isPasswordMatch){
+        throw new ApiError(401, "Invalid password");
+    }
+    //generate refresh token and access token
+    const {accessToken, refreshToken} = await generateAccessAndRefreshToken(user._id);
+    
+    //user does not have refresh token as we added it after accessing it
+    const loggedInUser = await User.findByIdAndUpdate(user.id).select("-password -refreshToken");
+
+    //sendign cookies response to frontend
+    const options={
+        httpOnly: true,
+        secure:true
+    }
+    return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(new ApiResponse(200, {user: loggedInUser, accessToken, refreshToken}, "User logged in successfully"));
+
+});
+
+
+//logout user controller
+const logoutUser = asyncHandler(async (req, res) => {
+      await User.findByIdAndUpdate(req.user._id,{
+          $set:{refreshToken: undefined}
+      },
+      {
+        new: true
+      }
+    );
+    const options={
+        httpOnly: true,
+        secure:true,
+    }
+    return res
+    .status(200)
+    .clearCookie("accessToken",options)
+    .clearCookie("refreshToken",options)
+    .json(new ApiResponse(200, "User logged out successfully"));
+});
+
+export { 
+    registerUser,
+    loginUser,
+    logoutUser
+};
