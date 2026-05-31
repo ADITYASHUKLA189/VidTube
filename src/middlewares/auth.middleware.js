@@ -17,7 +17,7 @@ export const verifyJWT=asyncHandler(async (req,res,next)=>{
     if(!user){
         throw new ApiError(401, "Unauthorized");
     }
-    req.user=user;
+    req.user=user;   //user ko request object me attach kr diya taki aage ke controllers me use kr ske(very important step)
     next();
     }catch(error){
         throw new ApiError(401,error?.message || "invalid token");
