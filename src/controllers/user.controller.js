@@ -415,6 +415,58 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
 });
 
 
+//now controller for watch history
+
+const getWatchHistory = asyncHandler(async (req, res) => {
+    //NOTE->user.req._id is a string which mongoose handle by itself but in aggregate we need to convert it to object id
+    const user = await User.aggregate([
+        {
+            $match:{
+                _id: new mongoose.Types.ObjectId(req.user._id)
+            }
+        },{
+            $lookup: {
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        fullname: 1,
+                                        username: 1,
+                                        avatar: 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                       $addFields: {
+                            owner: { $first: "$owner" }
+                        }
+                    }
+                ]   
+            }
+        }
+    ]);
+
+    return res
+        .status(200)
+        .json(new ApiResponse(
+            200,
+            user[0].watchHistory,
+            "Watch history fetched successfully"
+        ))
+});
+
 export { 
     registerUser,
     loginUser,
@@ -425,5 +477,6 @@ export {
     updateAccountDetails,
     updateUserAvatar,
     updateUserCoverImage,
-    getUserChannelProfile
+    getUserChannelProfile,
+    getWatchHistory
 };
