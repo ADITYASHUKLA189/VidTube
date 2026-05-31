@@ -1,9 +1,10 @@
 import  asyncHandler  from '../utils/asyncHandler.js';
 import  ApiError from '../utils/ApiError.js';
 import { User } from "../models/user.models.js";
-import uploadOnCloudinary from '../utils/cloudinary.js';
+import { uploadOnCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js';
 import ApiResponse from '../utils/apiResponse.js';
 import jwt from 'jsonwebtoken';
+import {Subscription}  from '../models/subscription.model.js';
 
 const generateAccessAndRefreshToken =async(userId)=>{
       try{
@@ -280,15 +281,24 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
       if(!uploadedAvatar){
           throw new ApiError(500, "Error while uploading avatar");
       }
+
+      
       const user = await User.findByIdAndUpdate(
-            req.user._id,
-            {
-                $set: {
-                    avatar: uploadedAvatar.url
+          req.user._id,
+          {
+              $set: {
+                  avatar: uploadedAvatar.url
                 }
             },
             { new: true }
         ).select("-password -refreshToken");
+        //NOTE-> we need to delete the previous as we got new
+        //to delete we need public id of previous image and we can get it from url by splitting it
+          const previousAvatarUrl = req.user.avatar;
+          if(previousAvatarUrl){
+              const publicId = previousAvatarUrl.split("/").slice(-1)[0].split(".")[0];
+              await deleteFromCloudinary(publicId);
+          }
         return res.status(200).json(
             new ApiResponse(
                 200,    
@@ -309,6 +319,8 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     if(!uploadedCoverImage){
         throw new ApiError(500, "Error while uploading cover image");
     }
+
+    
     const user = await User.findByIdAndUpdate(
         req.user._id,
         {   
@@ -318,6 +330,12 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         },
         { new: true }
     ).select("-password -refreshToken");
+    //delete previous cover image if exists in cloud
+    const previousCoverImageUrl = req.user.coverImage;
+    if(previousCoverImageUrl){
+        const publicId = previousCoverImageUrl.split("/").slice(-1)[0].split(".")[0];
+        await deleteFromCloudinary(publicId);
+    }
     return res.status(200).json(
         new ApiResponse(
             200,
@@ -325,6 +343,75 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
             "User cover image updated successfully"
         )
     );
+});
+
+
+
+//now from here i will start adding controller for the main interface of chanel
+//handling count of subs and videos and all thing relate to that in channel
+
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+      const {username} = req.params;
+      if(!username?.trim()){
+          throw new ApiError(404, "User not found or missing");
+      }
+
+    //   getting channel details with aggregate function of mongoose and lookup for subs and videos
+      const channel = await User.aggregate([
+         {
+            $match: { username: username.toLowerCase() }
+         },{
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers"
+            }
+         },{
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo"
+            }
+         },{
+            $addFields: {
+                subscribersCount: { $size: "$subscribers" },
+                subscribedToCount: { $size: "$subscribedTo" },
+                isSubscribed: {
+                    $cond: {
+                        if: { $in: [req.user._id, "$subscribers.subscriber"] },
+                        then: true,
+                        else: false
+                    }
+                }  
+            }
+         },{
+            // this is for chanel info
+            $project: {
+                fullname: 1,
+                username: 1,
+                subcribersCount: 1,
+                subscribedToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                email: 1,
+                coverImage: 1
+            }
+         }
+      ])
+      console.log(channel);
+      if(!channel || channel.length === 0){
+          throw new ApiError(404, "Channel does not exist");
+      }
+      return res
+         .status(200)
+         .json(new ApiResponse(
+                200,
+                channel[0],
+                "Channel profile fetched successfully"
+            )   
+         )
 });
 
 
@@ -337,5 +424,6 @@ export {
     getCurrentUser,
     updateAccountDetails,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChannelProfile
 };
