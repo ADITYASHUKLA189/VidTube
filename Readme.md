@@ -1,4 +1,4 @@
-# YouTube Clone Backend
+# VidTube video streaming platform
 
 This repository contains the full backend code for a YouTube-like video hosting API, built predominantly with the MERN stack (focusing on the backend - Node.js/Express and MongoDB). 
 
