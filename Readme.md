@@ -19,6 +19,7 @@ This repository contains the full backend code for a YouTube-like video hosting 
 - **[JSON Web Tokens (JWT)](https://jwt.io/):** Employed for stateless API authentication (Access and Refresh Tokens).
 - **[cookie-parser](https://www.npmjs.com/package/cookie-parser):** To securely parse and manage cookies handling authentication.
 - **[mongoose-aggregate-paginate-v2](https://www.npmjs.com/package/mongoose-aggregate-paginate-v2):** A powerful plugin to execute advanced Mongoose aggregation pipelines with pagination.
+- **[Zod](https://zod.dev/):** For robust schema declaration and data validation for incoming API requests.
 - **[CORS](https://www.npmjs.com/package/cors):** To enable cross-origin requests securely.
 
 ## 📂 Project Structure
