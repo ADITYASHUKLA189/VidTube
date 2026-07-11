@@ -38,6 +38,10 @@ import commentRouter from './routes/comment.routes.js';
 import notificationRouter from './routes/notification.routes.js';
 
 //routes declaration
+app.get("/", (req, res) => {
+    res.send("VidTube API is running successfully!");
+});
+
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/videos", videoRouter);
 app.use("/api/v1/tweets", tweetRouter);
