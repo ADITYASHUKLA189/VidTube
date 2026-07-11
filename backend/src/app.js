@@ -9,8 +9,10 @@ app.use(cors({
     origin: function(origin, callback) {
         if (!origin || origin.startsWith('http://localhost:')) {
             callback(null, true);
+        } else if (process.env.CORS_ORIGIN === '*') {
+            callback(null, origin); // Reflect the actual origin instead of sending '*'
         } else {
-            callback(null, process.env.CORS_ORIGIN);
+            callback(null, process.env.CORS_ORIGIN || origin);
         }
     },
     credentials: true,
