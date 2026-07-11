@@ -116,5 +116,4 @@ Your app will now be running with the frontend accessible at `http://localhost:5
 
 ### Database ER Diagram
 This is the database entity-relationship diagram followed for planning out the schemas:
-![Image](./backend/public/temp/ErDiagram.png)
-*(Note: adjust path to ER diagram image if applicable)*
+![Image](./ErDiagram.png)
