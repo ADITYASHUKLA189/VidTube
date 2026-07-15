@@ -6,6 +6,31 @@ import Hls from 'hls.js';
 export const VideoPlayer = ({ src, poster, autoplay }) => {
   const containerRef = useRef(null);
 
+  const getSources = (originalSrc) => {
+    if (!originalSrc) return [];
+    
+    // If it's a Cloudinary URL, we can request different resolutions on the fly
+    if (originalSrc.includes('cloudinary.com/') && originalSrc.includes('/upload/')) {
+      const parts = originalSrc.split('/upload/');
+      const base = parts[0] + '/upload';
+      const rest = parts[1];
+      
+      return [
+        { src: `${base}/q_auto,h_1080/${rest}`, size: 1080 },
+        { src: `${base}/q_auto,h_720/${rest}`, size: 720 },
+        { src: `${base}/q_auto,h_480/${rest}`, size: 480 },
+        { src: `${base}/q_auto,h_360/${rest}`, size: 360 }
+      ];
+    }
+    
+    // Fallback for non-Cloudinary static MP4s
+    return [
+      { src: originalSrc, size: 1080 },
+      { src: originalSrc, size: 720 },
+      { src: originalSrc, size: 480 }
+    ];
+  };
+
   useEffect(() => {
     if (!containerRef.current || !src) return;
     
@@ -73,11 +98,22 @@ export const VideoPlayer = ({ src, poster, autoplay }) => {
       });
     } else {
       // Native support (like Safari) or standard MP4
-      video.src = src;
+      const sources = getSources(src);
+      
+      // Initialize Plyr but pass sources explicitly so quality menu appears
       plyr = new Plyr(video, defaultOptions);
       
+      plyr.source = {
+        type: 'video',
+        title: 'Video',
+        sources: sources,
+        poster: poster || ''
+      };
+      
       if (autoplay) {
-        video.play().catch(e => console.log('Autoplay blocked:', e));
+        plyr.once('ready', () => {
+          plyr.play().catch(e => console.log('Autoplay blocked:', e));
+        });
       }
     }
 
