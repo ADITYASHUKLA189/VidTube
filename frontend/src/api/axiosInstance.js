@@ -10,7 +10,7 @@ axiosInstance.interceptors.request.use((config) => {
   console.log(`[Axios Request] ${config.method?.toUpperCase()} ${config.url}`, config.params || '');
   const token = localStorage.getItem('accessToken');
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers.set('Authorization', `Bearer ${token}`);
   }
   return config;
 });
@@ -23,7 +23,7 @@ const refreshSession = () => {
     refreshPromise = axios
       .post(`${API_BASE_URL}${endpoints.users.refreshToken}`, { refreshToken }, { withCredentials: true })
       .then((res) => {
-        const data = res.data?.data;
+        const data = res.data?.data || res.data;
         if (data?.accessToken) localStorage.setItem('accessToken', data.accessToken);
         if (data?.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
         return res;
@@ -41,7 +41,7 @@ axiosInstance.interceptors.response.use(
     console.log(`[Axios Response] SUCCESS ${response.config.method?.toUpperCase()} ${response.config.url}`, response.status, response.data);
     
     // Save tokens if they exist in the response
-    const data = response.data?.data;
+    const data = response.data?.data || response.data;
     if (data?.accessToken) localStorage.setItem('accessToken', data.accessToken);
     if (data?.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
 
@@ -70,7 +70,7 @@ axiosInstance.interceptors.response.use(
       // Retry original request with new token
       const newToken = localStorage.getItem('accessToken');
       if (newToken) {
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        originalRequest.headers.set('Authorization', `Bearer ${newToken}`);
       }
       return axiosInstance(originalRequest);
     } catch (refreshError) {
