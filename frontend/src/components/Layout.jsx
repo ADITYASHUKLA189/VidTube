@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import Avatar from './Avatar';
@@ -21,6 +21,7 @@ export default function Layout() {
   const [createDropdownOpen, setCreateDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
 
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useSocket() || { notifications: [], unreadCount: 0 };
 
@@ -45,7 +46,15 @@ export default function Layout() {
     }
   };
 
-  const startVoiceSearch = () => {
+  const toggleVoiceSearch = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+      return;
+    }
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       toast.error("Your browser does not support Voice Search.");
@@ -53,8 +62,10 @@ export default function Layout() {
     }
 
     const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
     recognition.continuous = false;
     recognition.interimResults = false;
+    recognition.lang = 'en-US';
     
     recognition.onstart = () => setIsListening(true);
     
@@ -150,7 +161,7 @@ export default function Layout() {
           {/* Voice Search Button */}
           <button 
             type="button"
-            onClick={startVoiceSearch}
+            onClick={toggleVoiceSearch}
             className={`rounded-full p-2 text-yt-text-light dark:text-yt-text-dark hidden md:block transition ${
               isListening 
                 ? 'bg-red-500 text-white animate-pulse' 
