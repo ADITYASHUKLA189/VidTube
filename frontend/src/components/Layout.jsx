@@ -7,6 +7,7 @@ import { signOut } from '../features/auth/authSlice';
 import { toggleSidebar, closeSidebar } from '../features/ui/uiSlice';
 import { useSocket } from '../contexts/SocketContext';
 import { formatDistanceToNow } from 'date-fns';
+import toast from 'react-hot-toast';
 
 export default function Layout() {
   const dispatch = useDispatch();
@@ -47,7 +48,7 @@ export default function Layout() {
   const startVoiceSearch = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Your browser does not support Voice Search.");
+      toast.error("Your browser does not support Voice Search.");
       return;
     }
 
@@ -67,6 +68,13 @@ export default function Layout() {
     
     recognition.onerror = (event) => {
       console.error("Voice search error:", event.error);
+      if (event.error === 'not-allowed') {
+        toast.error("Microphone permission denied.");
+      } else if (event.error === 'no-speech') {
+        toast.error("No speech detected.");
+      } else {
+        toast.error(`Voice search error: ${event.error}`);
+      }
       setIsListening(false);
     };
     
