@@ -148,7 +148,8 @@ const loginUser = asyncHandler(async (req, res) => {
     //sendign cookies response to frontend
     const options={
         httpOnly: true,
-        secure:false //NOTE->during pruduction change it to true abhi postman test mai run nhi ho rha
+        secure: true,
+        sameSite: "none"
     }
     console.log("this is Tokens",accessToken, refreshToken);
     return res
@@ -171,7 +172,8 @@ const logoutUser = asyncHandler(async (req, res) => {
     );
     const options={
         httpOnly: true,
-        secure:true,
+        secure: true,
+        sameSite: "none"
     }
     return res
     .status(200)
@@ -201,7 +203,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
     const options={
         httpOnly: true,
-        secure:true,
+        secure: true,
+        sameSite: "none"
     }
     const {accessToken, newrefreshToken} = await generateAccessAndRefreshToken(user._id);
     return res
@@ -487,6 +490,7 @@ const googleLogin = asyncHandler(async (req, res) => {
     const options = {
         httpOnly: true,
         secure: true,
+        sameSite: "none"
     }
 
     return res
