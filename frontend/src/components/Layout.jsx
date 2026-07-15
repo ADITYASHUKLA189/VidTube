@@ -19,6 +19,7 @@ export default function Layout() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [createDropdownOpen, setCreateDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [isListening, setIsListening] = useState(false);
 
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useSocket() || { notifications: [], unreadCount: 0 };
 
@@ -41,6 +42,37 @@ export default function Layout() {
     if (searchQuery.trim()) {
       navigate(`/search?query=${encodeURIComponent(searchQuery.trim())}`);
     }
+  };
+
+  const startVoiceSearch = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Your browser does not support Voice Search.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    
+    recognition.onstart = () => setIsListening(true);
+    
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setSearchQuery(transcript);
+      if (transcript.trim()) {
+        navigate(`/search?query=${encodeURIComponent(transcript.trim())}`);
+      }
+    };
+    
+    recognition.onerror = (event) => {
+      console.error("Voice search error:", event.error);
+      setIsListening(false);
+    };
+    
+    recognition.onend = () => setIsListening(false);
+    
+    recognition.start();
   };
 
   const linkClass = ({ isActive }) =>
@@ -108,7 +140,16 @@ export default function Layout() {
           </form>
 
           {/* Voice Search Button */}
-          <button className="rounded-full bg-neutral-100 dark:bg-neutral-800 p-2 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-yt-text-light dark:text-yt-text-dark hidden md:block">
+          <button 
+            type="button"
+            onClick={startVoiceSearch}
+            className={`rounded-full p-2 text-yt-text-light dark:text-yt-text-dark hidden md:block transition ${
+              isListening 
+                ? 'bg-red-500 text-white animate-pulse' 
+                : 'bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+            }`}
+            title="Search with your voice"
+          >
             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 14H5c0 3.42 2.72 6.23 6 6.72V22h2v-1.28c3.28-.49 6-3.3 6-6.72h-1.7z"/>
             </svg>
